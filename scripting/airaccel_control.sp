@@ -14,13 +14,14 @@
  * Hooks players and replicates sv_airaccelerate to a client
  */
 
-ConVar g_cvarAirAccelerate;
-bool g_enabled[MAXPLAYERS + 1];
-int g_value[MAXPLAYERS + 1];
-int g_default;
-bool g_simulating;
+ConVar g_cvarAirAccelerate; // sv_airaccelerate
+int g_defaultFlags; // Default cvar flags
 
-int g_defaultFlags;
+bool g_enabled[MAXPLAYERS + 1]; // Client enablements
+int g_value[MAXPLAYERS + 1]; // Client accel values
+int g_default; // The default accel value
+
+bool g_simulating; // Indicates the plugin is modifying the convar, not an outside source.
 
 public Plugin myinfo =
 {
@@ -59,14 +60,14 @@ public void OnPluginStart()
 public void cvarChanged_Accel(ConVar convar, const char[] oldValue, const char[] newValue)
 {
 	if (g_simulating)
-	{
+	{ // Do nothing if this plugin is modifying value for a client
 		return;
 	}
 
 	g_default = StringToInt(newValue);
 
 	for (int i = 1; i <= MaxClients; ++i)
-	{
+	{ // check / update client values
 		if (!g_enabled[i])
 		{ // if not enabled, then just update default
 			g_value[i] = g_default;
@@ -190,11 +191,13 @@ public void sdkhookPreThink(int client)
 	{
 		g_simulating = true;
 		g_cvarAirAccelerate.IntValue = g_value[client];
+		g_simulating = false;
 	}
 }
 
 public void sdkhookPostThink(int client)
 {
+	g_simulating = true;
 	g_cvarAirAccelerate.IntValue = g_default;
 	g_simulating = false;
 }
